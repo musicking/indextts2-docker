@@ -5,8 +5,8 @@ services:
       context: .
       dockerfile: docker/Dockerfile
     ports:
-      - "7860:7860"
-      - "8002:8002"
+      - "7960:7860"
+      - "8030:8002"
     environment:
       INDEXTTS_SERVICES: api,webui
       USE_FP16: "1"

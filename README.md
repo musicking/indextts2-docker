@@ -2,8 +2,8 @@
 
 基于 [IndexTTS2 官方仓库](https://github.com/index-tts/index-tts)最新源码构建的 CUDA Docker 镜像，提供：
 
-- 官方 Gradio WebUI（端口 `7860`）
-- REST API 和 Swagger UI（端口 `8002`，文档路径 `/docs`）
+- 官方 Gradio WebUI（宿主机端口 `7960`）
+- REST API 和 Swagger UI（宿主机端口 `8030`，文档路径 `/docs`）
 - 内容寻址的说话人参考音频缓存
 - 中文/英文基础模型，以及越南语、日语社区模型变体
 - 固定源码、CUDA 基础镜像和全部 Hugging Face revision 的稳定构建
@@ -35,26 +35,26 @@ docker run -d \
   --name indextts2 \
   --gpus all \
   --shm-size 8g \
-  -p 8002:8002 \
-  -p 7860:7860 \
+  -p 8030:8002 \
+  -p 7960:7860 \
   -v indextts2-outputs:/app/outputs \
   musicking/indextts2:latest
 ```
 
 访问：
 
-- WebUI：<http://localhost:7860>
-- API 文档：<http://localhost:8002/docs>
-- 健康检查：<http://localhost:8002/health>
+- WebUI：<http://localhost:7960>
+- API 文档：<http://localhost:8030/docs>
+- 健康检查：<http://localhost:8030/health>
 
 默认同时启动 API 和 WebUI，因此会在同一张 GPU 上加载两份模型。显存不足时只启动一个服务：
 
 ```bash
 # 只启动 API
-docker run --gpus all -e INDEXTTS_SERVICES=api -p 8002:8002 musicking/indextts2:latest
+docker run --gpus all -e INDEXTTS_SERVICES=api -p 8030:8002 musicking/indextts2:latest
 
 # 只启动 WebUI
-docker run --gpus all -e INDEXTTS_SERVICES=webui -p 7860:7860 musicking/indextts2:latest
+docker run --gpus all -e INDEXTTS_SERVICES=webui -p 7960:7860 musicking/indextts2:latest
 ```
 
 ## REST API
@@ -62,7 +62,7 @@ docker run --gpus all -e INDEXTTS_SERVICES=webui -p 7860:7860 musicking/indextts
 先上传参考音频：
 
 ```bash
-curl -X POST http://localhost:8002/speakers \
+curl -X POST http://localhost:8030/speakers \
   -F "audio=@reference.wav" \
   -F "name=Alice"
 ```
@@ -70,7 +70,7 @@ curl -X POST http://localhost:8002/speakers \
 返回的 `speaker_id` 可重复使用：
 
 ```bash
-curl -X POST http://localhost:8002/tts \
+curl -X POST http://localhost:8030/tts \
   -H "Content-Type: application/json" \
   -d '{"text":"你好，这是一次测试。","speaker_id":"spk_xxxxxxxxxxxxxxxx"}' \
   --output result.wav
