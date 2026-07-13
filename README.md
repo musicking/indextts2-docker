@@ -86,6 +86,35 @@ curl -X POST http://localhost:8030/tts \
 
 使用 Docker 时，宿主机不需要安装 CUDA Toolkit 12.8；CUDA 用户态库位于镜像内。宿主机需要足够新的 NVIDIA 驱动，以及 NVIDIA Container Toolkit。
 
+### NVIDIA 驱动兼容性
+
+如果启动容器时出现下面的错误，说明镜像已经构建成功，但宿主机驱动没有通过 NVIDIA Container Runtime 的 CUDA 12.8 检查：
+
+```text
+nvidia-container-cli: requirement error: unsatisfied condition: cuda>=12.8
+```
+
+先查看驱动版本：
+
+```bash
+nvidia-smi --query-gpu=driver_version --format=csv,noheader
+```
+
+推荐升级到 CUDA 12.8 Update 1 对应的 Linux 驱动 `570.124.06` 或更新版本，然后直接启动：
+
+```bash
+docker compose up -d --no-build
+```
+
+如果暂时不能升级，但 Linux 驱动不低于 `525.60.13`，CUDA 12.x 官方提供有限特性的 minor-version compatibility。可以显式关闭 NVIDIA 容器的严格版本门槛进行兼容性测试：
+
+```bash
+NVIDIA_DISABLE_REQUIRE=true docker compose up -d --no-build
+docker compose logs -f indextts2
+```
+
+这个兼容开关默认关闭。驱动低于 `525.60.13` 时不要使用；即使达到该版本，较新 CUDA 特性、PTX 或运行时编译仍可能要求更新驱动，生产环境仍建议升级驱动。
+
 基础镜像包含官方完整 checkpoint 和运行所需的辅助模型：
 
 ```bash

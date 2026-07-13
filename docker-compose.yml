@@ -11,6 +11,9 @@ services:
       INDEXTTS_SERVICES: api,webui
       USE_FP16: "1"
       USE_CUDA_KERNEL: "1"
+      # Opt in only when the host driver is >=525.60.13 but older than the
+      # CUDA 12.8 image's strict requirement. Upgrading the driver is safer.
+      NVIDIA_DISABLE_REQUIRE: "${NVIDIA_DISABLE_REQUIRE:-false}"
     volumes:
       - indextts2-outputs:/app/outputs
     shm_size: 8gb
