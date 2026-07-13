@@ -1,22 +1,8 @@
 name: Build and publish Docker images
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: Image version tag (for example, v3.0.0)
-        required: true
-        type: string
-      flavor:
-        description: Image flavor to publish
-        required: true
-        default: all
-        type: choice
-        options:
-          - all
-          - base
-          - vietnamese
-          - japanese
+  release:
+    types: [published]
 
 permissions:
   contents: read
@@ -27,6 +13,7 @@ jobs:
     environment: docker
     env:
       IMAGE: ${{ secrets.DOCKER_USERNAME }}/indextts2
+      VERSION: ${{ github.event.release.tag_name }}
     steps:
       - name: Validate Docker Hub configuration
         env:
@@ -35,6 +22,10 @@ jobs:
         run: |
           test -n "${DOCKER_USERNAME}" || { echo "DOCKER_USERNAME secret is not configured"; exit 1; }
           test -n "${DOCKER_PASSWORD}" || { echo "DOCKER_PASSWORD secret is not configured"; exit 1; }
+          test -n "${VERSION}" || { echo "Release tag is not available"; exit 1; }
+
+      - name: Free disk space
+        run: sudo rm -rf /opt/hostedtoolcache
 
       - name: Checkout this exact source revision
         uses: actions/checkout@v4
@@ -49,7 +40,6 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and push base image
-        if: inputs.flavor == 'all' || inputs.flavor == 'base'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -57,38 +47,36 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ${{ env.IMAGE }}:${{ inputs.version }}
+            ${{ env.IMAGE }}:${{ env.VERSION }}
             ${{ env.IMAGE }}:latest
             ${{ env.IMAGE }}:sha-${{ github.sha }}
           cache-from: type=gha,scope=base
           cache-to: type=gha,mode=max,scope=base
 
       - name: Build and push Vietnamese image
-        if: inputs.flavor == 'all' || inputs.flavor == 'vietnamese'
         uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/Dockerfile.vietnamese
           platforms: linux/amd64
           push: true
-          build-args: BASE_IMAGE=${{ env.IMAGE }}:${{ inputs.flavor == 'all' && format('sha-{0}', github.sha) || 'latest' }}
+          build-args: BASE_IMAGE=${{ env.IMAGE }}:sha-${{ github.sha }}
           tags: |
-            ${{ env.IMAGE }}:${{ inputs.version }}-vietnamese
+            ${{ env.IMAGE }}:${{ env.VERSION }}-vietnamese
             ${{ env.IMAGE }}:latest-vietnamese
           cache-from: type=gha,scope=vietnamese
           cache-to: type=gha,mode=max,scope=vietnamese
 
       - name: Build and push Japanese image
-        if: inputs.flavor == 'all' || inputs.flavor == 'japanese'
         uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/Dockerfile.japanese
           platforms: linux/amd64
           push: true
-          build-args: BASE_IMAGE=${{ env.IMAGE }}:${{ inputs.flavor == 'all' && format('sha-{0}', github.sha) || 'latest' }}
+          build-args: BASE_IMAGE=${{ env.IMAGE }}:sha-${{ github.sha }}
           tags: |
-            ${{ env.IMAGE }}:${{ inputs.version }}-japanese
+            ${{ env.IMAGE }}:${{ env.VERSION }}-japanese
             ${{ env.IMAGE }}:latest-japanese
           cache-from: type=gha,scope=japanese
           cache-to: type=gha,mode=max,scope=japanese
