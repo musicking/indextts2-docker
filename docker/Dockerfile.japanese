@@ -1,0 +1,16 @@
+# syntax=docker/dockerfile:1.7
+
+ARG BASE_IMAGE=musicking/indextts2:latest
+FROM ${BASE_IMAGE}
+
+ARG MODEL_REPO=Jmica/IndexTTS-2-Japanese
+ARG MODEL_REVISION=2b8cfb96f746a467d23bd228a4cae0e1073a905a
+
+RUN uv run python -c "from huggingface_hub import snapshot_download; snapshot_download(repo_id='${MODEL_REPO}', revision='${MODEL_REVISION}', local_dir='/tmp/index-tts-japanese', allow_patterns=['config.yaml', 'japanese_bpe.model', 'model_jp_163000.pth'])" \
+    && rm -f checkpoints/config.yaml checkpoints/bpe.model checkpoints/gpt.pth \
+    && mv /tmp/index-tts-japanese/config.yaml checkpoints/config.yaml \
+    && mv /tmp/index-tts-japanese/japanese_bpe.model checkpoints/bpe.model \
+    && mv /tmp/index-tts-japanese/model_jp_163000.pth checkpoints/gpt.pth \
+    && uv run python -c "from pathlib import Path; import sentencepiece as spm; required=['config.yaml','bpe.model','gpt.pth']; assert all((Path('checkpoints')/p).stat().st_size > 0 for p in required); spm.SentencePieceProcessor(model_file='checkpoints/bpe.model')" \
+    && rm -rf /tmp/index-tts-japanese /root/.cache/huggingface
+

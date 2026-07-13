@@ -1,0 +1,28 @@
+name: Validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.8.14"
+          enable-cache: true
+      - name: Install test and Docker API dependencies
+        run: |
+          uv sync --frozen --extra test
+          uv pip install --requirement docker/requirements.txt
+      - name: Compile Docker extensions
+        run: uv run python -m compileall -q docker/app
+      - name: Run Docker extension tests
+        run: uv run pytest -q tests/docker
+

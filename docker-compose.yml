@@ -1,19 +1,21 @@
-version: '3.8'
-
 services:
   indextts2:
-    build: .
+    image: musicking/indextts2:latest
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
     ports:
-      - "7870:7870"
+      - "7860:7860"
       - "8002:8002"
+    environment:
+      INDEXTTS_SERVICES: api,webui
+      USE_FP16: "1"
+      USE_CUDA_KERNEL: "1"
     volumes:
-      - ./checkpoints:/app/checkpoints
-      - ./examples:/app/examples
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+      - indextts2-outputs:/app/outputs
+    shm_size: 8gb
+    gpus: all
     restart: unless-stopped
+
+volumes:
+  indextts2-outputs:
