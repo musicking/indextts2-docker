@@ -1,5 +1,6 @@
 services:
   indextts2:
+    container_name: indextts2
     image: musicking/indextts2:latest
     build:
       context: .
@@ -8,12 +9,10 @@ services:
       - "7960:7860"
       - "8030:8002"
     environment:
-      INDEXTTS_SERVICES: api,webui
+      # INDEXTTS_SERVICES: api,webui
+      INDEXTTS_SERVICES: api
       USE_FP16: "1"
       USE_CUDA_KERNEL: "1"
-      # Opt in only when the host driver is >=525.60.13 but older than the
-      # CUDA 12.8 image's strict requirement. Upgrading the driver is safer.
-      NVIDIA_DISABLE_REQUIRE: "${NVIDIA_DISABLE_REQUIRE:-false}"
     volumes:
       - indextts2-outputs:/app/outputs
     shm_size: 8gb

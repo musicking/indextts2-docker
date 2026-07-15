@@ -106,15 +106,6 @@ nvidia-smi --query-gpu=driver_version --format=csv,noheader
 docker compose up -d --no-build
 ```
 
-如果暂时不能升级，但 Linux 驱动不低于 `525.60.13`，CUDA 12.x 官方提供有限特性的 minor-version compatibility。可以显式关闭 NVIDIA 容器的严格版本门槛进行兼容性测试：
-
-```bash
-NVIDIA_DISABLE_REQUIRE=true docker compose up -d --no-build
-docker compose logs -f indextts2
-```
-
-这个兼容开关默认关闭。驱动低于 `525.60.13` 时不要使用；即使达到该版本，较新 CUDA 特性、PTX 或运行时编译仍可能要求更新驱动，生产环境仍建议升级驱动。
-
 基础镜像包含官方完整 checkpoint 和运行所需的辅助模型：
 
 ```bash
