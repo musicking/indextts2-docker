@@ -17,12 +17,7 @@ jobs:
         with:
           version: "0.8.14"
           enable-cache: true
-      - name: Install test and Docker API dependencies
-        run: |
-          uv sync --frozen --extra test
-          uv pip install --requirement docker/requirements.txt
-      - name: Compile Docker extensions
-        run: uv run python -m compileall -q docker/app
-      - name: Run Docker extension tests
-        run: uv run pytest -q tests/docker
-
+      - name: Install WebUI dependencies
+        run: uv sync --frozen --extra webui
+      - name: Compile WebUI and Docker helpers
+        run: uv run python -m py_compile webui.py docker/download_models.py

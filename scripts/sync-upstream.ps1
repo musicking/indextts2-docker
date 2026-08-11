@@ -19,7 +19,7 @@ if ($LASTEXITCODE -ne 0) {
 
 $paths = @(
     '.python-version', 'DISCLAIMER', 'LICENSE', 'LICENSE_ZH.txt', 'MANIFEST.in',
-    'archive', 'assets', 'checkpoints', 'cli_tests', 'docs', 'examples',
+    'archive', 'assets', 'backends', 'checkpoints', 'cli_tests', 'docs', 'examples',
     'indextts', 'tests', 'tools', 'pyproject.toml', 'uv.lock', 'webui.py'
 )
 git -C $repo restore --source upstream/main -- $paths

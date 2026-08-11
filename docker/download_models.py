@@ -81,11 +81,14 @@ def main() -> None:
 
     required = (
         model_dir / "config.yaml",
-        model_dir / "bpe.model",
         model_dir / "gpt.pth",
         model_dir / "s2mel.pth",
+        model_dir / "codec.pth",
+        model_dir / "feat1.pt",
+        model_dir / "feat2.pt",
+        model_dir / "multilingual_zh_ja_yue_char_del.tiktoken",
+        model_dir / "qwen0.6bemo4-merge" / "model.safetensors",
         cache_dir / "w2v-bert-2.0" / "config.json",
-        cache_dir / "semantic_codec_model.safetensors",
         cache_dir / "campplus_cn_common.bin",
         cache_dir / "bigvgan" / "bigvgan_generator.pt",
     )

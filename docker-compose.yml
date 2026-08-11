@@ -1,23 +1,21 @@
 services:
-  indextts2:
-    container_name: indextts2
-    image: musicking/indextts2:latest
+  indextts25:
+    container_name: indextts25
+    image: dockermaker0/indextts2:latest
     build:
       context: .
       dockerfile: docker/Dockerfile
     ports:
-      - "7960:7860"
-      - "8030:8002"
+      - "7863:7863"
     environment:
-      # INDEXTTS_SERVICES: api,webui
-      INDEXTTS_SERVICES: api
-      USE_FP16: "1"
-      USE_CUDA_KERNEL: "1"
+      WEBUI_PORT: "7863"
+      USE_BF16: "1"
+      USE_CUDA_KERNEL: "0"
     volumes:
-      - indextts2-outputs:/app/outputs
+      - indextts25-outputs:/app/outputs
     shm_size: 8gb
     gpus: all
     restart: unless-stopped
 
 volumes:
-  indextts2-outputs:
+  indextts25-outputs:
