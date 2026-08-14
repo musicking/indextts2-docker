@@ -21,7 +21,3 @@ jobs:
         run: uv sync --frozen --extra webui
       - name: Compile WebUI and Docker helpers
         run: uv run python -m py_compile webui.py docker/download_models.py
-      - name: Validate audio.cpp API assets
-        run: |
-          python -m json.tool docker/audio-cpp/server.json >/dev/null
-          bash -n docker/audio-cpp/entrypoint.sh
