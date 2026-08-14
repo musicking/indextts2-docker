@@ -20,7 +20,7 @@
 
 | 模型 | 演示 | 论文 | Modelscope | HuggingFace |
 | :--- | :---: | :---: | :---: | :---: |
-| **IndexTTS-2.5** | [演示](https://index-tts.github.io/index-tts2-5.github.io/) | [论文](https://arxiv.org/abs/2601.03888) | [Modelscope](https://modelscope.cn/models/IndexTeam/IndexTTS-2.5) | [HuggingFace](https://huggingface.co/IndexTeam/IndexTTS-2.5) |
+| **IndexTTS-2.5** | [演示](https://index-tts.github.io/index-tts2-5.github.io/) [HF Space](https://huggingface.co/spaces/IndexTeam/IndexTTS-2.5-Demo) | [论文](https://arxiv.org/abs/2601.03888) | [Modelscope](https://modelscope.cn/models/IndexTeam/IndexTTS-2.5) | [HuggingFace](https://huggingface.co/IndexTeam/IndexTTS-2.5) |
 | **IndexTTS-2** | [演示](https://index-tts.github.io/index-tts2.github.io/) | [论文](https://arxiv.org/abs/2506.21619) | [Modelscope](https://modelscope.cn/models/IndexTeam/IndexTTS-2) | [HuggingFace](https://huggingface.co/IndexTeam/IndexTTS-2) |
 | **IndexTTS-1.5** | [演示](https://index-tts.github.io/) | [论文](https://arxiv.org/abs/2502.05512) | [Modelscope](https://modelscope.cn/models/IndexTeam/IndexTTS-1.5) | [HuggingFace](https://huggingface.co/IndexTeam/IndexTTS-1.5) |
 | **IndexTTS** | [演示](https://index-tts.github.io/) | [论文](https://arxiv.org/abs/2502.05512) | [Modelscope](https://modelscope.cn/models/IndexTeam/Index-TTS) | [HuggingFace](https://huggingface.co/IndexTeam/Index-TTS) |
@@ -172,7 +172,7 @@ uv sync --all-extras --default-index "https://mirrors.tuna.tsinghua.edu.cn/pypi/
 HuggingFace下载：
 
 ```bash
-uv tool install "huggingface-hub[cli,hf_xet]"
+uv tool install "huggingface-hub"
 
 hf download IndexTeam/IndexTTS-2 --local-dir=checkpoints
 hf download IndexTeam/IndexTTS-2.5 --local-dir=checkpoints
@@ -320,10 +320,10 @@ tts.infer(spk_audio_prompt='examples/voice_07.wav', text=text, output_path="gen.
 text = "对不起嘛！我的记性真的不太好，但是和你在一起的事情，我都会努力记住的~"
 
 # IndexTTS2
-tts.infer(spk_audio_prompt='examples/09.wav', text=text, output_path="gen.wav", emo_vector=[0, 0, 0.8, 0, 0, 0, 0, 0], use_random=False, verbose=True)
+tts.infer(spk_audio_prompt='examples/voice_09.wav', text=text, output_path="gen.wav", emo_vector=[0, 0, 0.8, 0, 0, 0, 0, 0], use_random=False, verbose=True)
 
 # IndexTTS2.5
-tts.infer(spk_audio_prompt='examples/09.wav', text=text, lang="ZH", output_path="gen.wav", emo_vector=[0, 0, 0.8, 0, 0, 0, 0, 0], use_random=False, verbose=True)
+tts.infer(spk_audio_prompt='examples/voice_09.wav', text=text, lang="ZH", output_path="gen.wav", emo_vector=[0, 0, 0.8, 0, 0, 0, 0, 0], use_random=False, verbose=True)
 ```
 
 5. 可开启 `use_emo_text` 根据输入文本自动生成情感向量。

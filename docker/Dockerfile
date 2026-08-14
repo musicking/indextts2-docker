@@ -5,8 +5,8 @@ FROM ghcr.io/astral-sh/uv:0.8.14@sha256:f3660c56d5b08d6c516360981bedc439f499b9bf
 FROM nvidia/cuda:12.8.1-cudnn-devel-ubuntu22.04@sha256:ad6d59a3bbf3e82c1c849c9ac09cfc2a3e0bbb8655042fd899be6681b3fe2a85
 
 ARG MODEL_REPO=IndexTeam/IndexTTS-2.5
-ARG MODEL_REVISION=ba2480d9f7f629eb18f6acaebb357679d9ba88a4
-ARG UPSTREAM_REVISION=b5ea881bec284b72f0b1cc04e0a724ff0c6b93e9
+ARG MODEL_REVISION=c39ce5ba981572cb187443877ff559dfb246ce63
+ARG UPSTREAM_REVISION=4f8792ff120cd3ea470dd511e997a17c86cddd10
 
 LABEL org.opencontainers.image.source="https://github.com/musicking/indextts2-docker" \
       org.opencontainers.image.url="https://github.com/index-tts/index-tts" \

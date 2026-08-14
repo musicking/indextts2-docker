@@ -31,6 +31,7 @@ parser.add_argument("--deepspeed", action="store_true", default=False, help="Use
 parser.add_argument("--cuda_kernel", action="store_true", default=False, help="Use CUDA kernel for inference if available")
 parser.add_argument("--accel", action="store_true", default=False, help="Use GPT2 acceleration engine if available")
 parser.add_argument("--torch_compile", action="store_true", default=False, help="Use torch.compile to optimize s2mel if available")
+parser.add_argument("--qwen_emo", action="store_true", default=False, help="Load QwenEmotion even on a low-VRAM GPU, where it is skipped by default")
 parser.add_argument("--gui_seg_tokens", type=int, default=120, help="GUI: Max tokens per generation segment")
 cmd_args = parser.parse_args()
 
@@ -109,8 +110,37 @@ MODE = 'local'
 # Download example audio files if missing
 ensure_examples_available()
 
+LOW_VRAM_THRESHOLD_GB = 10.0
+
+
+def detect_vram_gb():
+    import torch
+
+    if not torch.cuda.is_available():
+        return None
+    return torch.cuda.get_device_properties(0).total_memory / (1024 ** 3)
+
+
+_vram_gb = detect_vram_gb()
+LOW_VRAM = _vram_gb is not None and _vram_gb < LOW_VRAM_THRESHOLD_GB
+
+HALF_PRECISION = cmd_args.fp16 or LOW_VRAM
+LOAD_QWEN_EMO = cmd_args.qwen_emo or not LOW_VRAM
+
+if LOW_VRAM:
+    print(
+        f">> {_vram_gb:.1f} GB VRAM detected (< {LOW_VRAM_THRESHOLD_GB:.0f} GB): "
+        "enabling half precision"
+        + ("" if LOAD_QWEN_EMO else " and skipping QwenEmotion")
+    )
+    if not LOAD_QWEN_EMO:
+        print(">> Emotion control from a text description is unavailable; pass --qwen_emo to force it.")
+
+
 def build_tts(use_accel=False, use_torch_compile=False):
     """Build an IndexTTS2 instance with the requested acceleration options."""
+    import torch
+
     kwargs = dict(
         model_dir=cmd_args.model_dir,
         cfg_path=os.path.join(cmd_args.model_dir, "config.yaml"),
@@ -118,12 +148,15 @@ def build_tts(use_accel=False, use_torch_compile=False):
         use_cuda_kernel=cmd_args.cuda_kernel,
         use_accel=use_accel,
         use_torch_compile=use_torch_compile,
+        use_qwen_emo=LOAD_QWEN_EMO,
     )
     if IS_V25:
-        kwargs["use_bf16"] = cmd_args.fp16
-        kwargs["use_qwen_emo"] = True
+        use_bf16 = HALF_PRECISION and torch.cuda.is_bf16_supported()
+        if HALF_PRECISION and not use_bf16:
+            print(">> BF16 is not supported on this device, falling back to full precision.")
+        kwargs["use_bf16"] = use_bf16
     else:
-        kwargs["use_fp16"] = cmd_args.fp16
+        kwargs["use_fp16"] = HALF_PRECISION
     return IndexTTS2(**kwargs)
 
 
@@ -138,6 +171,7 @@ EMO_CHOICES_ALL = [i18n("与音色参考音频相同"),
                 i18n("使用情感向量控制"),
                 i18n("使用情感描述文本控制")]
 EMO_CHOICES_OFFICIAL = EMO_CHOICES_ALL[:-1]  # skip experimental features
+EMO_CHOICES_EXPERIMENTAL = EMO_CHOICES_ALL if LOAD_QWEN_EMO else EMO_CHOICES_OFFICIAL
 
 os.makedirs("outputs/tasks",exist_ok=True)
 os.makedirs("prompts",exist_ok=True)
@@ -176,7 +210,7 @@ with open("examples/cases.jsonl", "r", encoding="utf-8") as f:
         example_cases.append(case)
 
 def get_example_cases(include_experimental = False):
-    if include_experimental:
+    if include_experimental and LOAD_QWEN_EMO:
         return example_cases  # show every example
 
     # exclude emotion control mode 3 (emotion from text description)
@@ -334,7 +368,12 @@ def on_preset_load(name):
             emo_vec = emo_vec[:8]
 
         # Update the radio choices when loading an experimental preset.
-        emo_choices = EMO_CHOICES_ALL if is_experimental else EMO_CHOICES_OFFICIAL
+        emo_choices = EMO_CHOICES_EXPERIMENTAL if is_experimental else EMO_CHOICES_OFFICIAL
+        if emo_method >= len(emo_choices):
+            gr.Warning(i18n("该预设使用了情感描述文本控制，当前显存不足未加载该模型，已重置为默认方式"))
+            emo_method = 0
+            is_experimental = False
+            emo_choices = EMO_CHOICES_OFFICIAL
 
         return {
             experimental_checkbox: gr.update(value=is_experimental),
@@ -660,7 +699,7 @@ def create_experimental_warning_message():
     return create_warning_message(i18n('提示：此功能为实验版，结果尚不稳定，我们正在持续优化中。'))
 
 with gr.Blocks(
-    title="IndexTTS Demo",
+    title=f"IndexTTS-{cmd_args.version} Demo",
     css="""
         /* Make the voice reference audio upload area more compact. */
         #prompt_audio_compact .audio-container,
@@ -708,12 +747,13 @@ with gr.Blocks(
     """,
 ) as demo:
     mutex = threading.Lock()
-    gr.HTML('''
-    <h2><center>IndexTTS2: A Breakthrough in Emotionally Expressive and Duration-Controlled Auto-Regressive Zero-Shot Text-to-Speech</h2>
-<p align="center">
-<a href='https://arxiv.org/abs/2506.21619'><img src='https://img.shields.io/badge/ArXiv-2506.21619-red'></a>
-</p>
-    ''')
+    arxiv_id = "2601.03888" if IS_V25 else "2506.21619"
+    gr.HTML(f'''
+       <h2 style="text-align:center">IndexTTS-{cmd_args.version}</h2>
+   <p align="center">
+   <a href='https://arxiv.org/abs/{arxiv_id}'><img src='https://img.shields.io/badge/ArXiv-{arxiv_id}-red'></a>
+   </p>
+       ''')
 
     with gr.Tab(i18n("音频生成")):
         os.makedirs("prompts", exist_ok=True)
@@ -1115,7 +1155,7 @@ with gr.Blocks(
 
     def on_experimental_change(is_experimental, current_mode_index):
         # 切换情感控制选项
-        new_choices = EMO_CHOICES_ALL if is_experimental else EMO_CHOICES_OFFICIAL
+        new_choices = EMO_CHOICES_EXPERIMENTAL if is_experimental else EMO_CHOICES_OFFICIAL
         # if their current mode selection doesn't exist in new choices, reset to 0.
         # we don't verify that OLD index means the same in NEW list, since we KNOW it does.
         new_index = current_mode_index if current_mode_index < len(new_choices) else 0

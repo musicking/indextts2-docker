@@ -215,7 +215,6 @@ class TextNormalizer:
                 print(traceback.format_exc())
             pattern = re.compile("|".join(re.escape(p) for p in self.char_rep_map.keys()))
             result = pattern.sub(lambda x: self.char_rep_map[x.group()], result)
-
         # 恢复 G2P 发音标注
         result = self._restore_pronunciation_annotations(result, _pron_placeholders)
         return result

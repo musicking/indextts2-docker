@@ -66,9 +66,9 @@ docker build -f docker/Dockerfile -t dockermaker0/indextts2:2.5 .
 
 构建参数均固定为可复现版本：
 
-- 官方源码：`b5ea881bec284b72f0b1cc04e0a724ff0c6b93e9`
+- 官方源码：`4f8792ff120cd3ea470dd511e997a17c86cddd10`
 - 模型：`IndexTeam/IndexTTS-2.5`
-- 模型 revision：`ba2480d9f7f629eb18f6acaebb357679d9ba88a4`
+- 模型 revision：`c39ce5ba981572cb187443877ff559dfb246ce63`
 - CUDA 基础镜像：`12.8.1 + cuDNN + Ubuntu 22.04`
 - Python：`3.11`
 - PyTorch：官方项目锁定的 `2.8.x + cu128`
