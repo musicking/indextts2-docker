@@ -1,6 +1,13 @@
 name: Build and publish audio.cpp API image
 
 on:
+  push:
+    branches: [codex/audio-cpp-api]
+    paths:
+      - .github/workflows/audio-cpp-publish.yml
+      - docker/audio-cpp/**
+      - docker-compose.audio-cpp.yml
+      - docs/AUDIOCPP_API_ZH.md
   workflow_dispatch:
     inputs:
       version:
@@ -17,8 +24,8 @@ jobs:
     runs-on: ubuntu-24.04
     environment: docker
     env:
-      IMAGE: dockermaker0/indextts2
-      VERSION: ${{ inputs.version }}
+      IMAGE: dockermaker0/indextts25-api
+      VERSION: ${{ inputs.version || '2.5.0' }}
     steps:
       - name: Validate Docker Hub configuration
         env:
@@ -52,7 +59,7 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ${{ env.IMAGE }}:audio-cpp-${{ env.VERSION }}
-            ${{ env.IMAGE }}:audio-cpp-2.5
-            ${{ env.IMAGE }}:audio-cpp-latest
-            ${{ env.IMAGE }}:audio-cpp-sha-${{ github.sha }}
+            ${{ env.IMAGE }}:${{ env.VERSION }}
+            ${{ env.IMAGE }}:2.5
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:sha-${{ github.sha }}

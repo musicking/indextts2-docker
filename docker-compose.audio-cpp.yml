@@ -1,12 +1,12 @@
 services:
   indextts25-api:
     container_name: indextts25-api
-    image: dockermaker0/indextts2:audio-cpp-latest
+    image: dockermaker0/indextts25-api:latest
     build:
       context: .
       dockerfile: docker/audio-cpp/Dockerfile
     ports:
-      - "7863:7863"
+      - "7864:7864"
     volumes:
       - ./voices:/voices:ro
     gpus: all

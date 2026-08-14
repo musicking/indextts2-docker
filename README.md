@@ -1,6 +1,6 @@
 # IndexTTS 2.5 WebUI Docker
 
-> 需要生产 API 服务时，请使用独立的 [audio.cpp API 镜像](docs/AUDIOCPP_API_ZH.md)。它提供 OpenAI 风格 `/v1/audio/speech` 接口，默认同样监听 `7863`，不会启动 Gradio。
+> 需要生产 API 服务时，请使用独立分支 `codex/audio-cpp-api` 中的 [audio.cpp API 镜像](docs/AUDIOCPP_API_ZH.md)。它发布为 `dockermaker0/indextts25-api`，提供 OpenAI 风格 `/v1/audio/speech` 接口并监听独立端口 `7864`。
 
 基于官方 [IndexTTS](https://github.com/index-tts/index-tts) 源码构建的
 IndexTTS 2.5 CUDA 镜像，默认只启动 Gradio WebUI，监听 `7863` 端口。

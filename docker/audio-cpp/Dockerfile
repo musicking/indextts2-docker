@@ -34,9 +34,9 @@ RUN chmod 0555 /app/indextts-entrypoint.sh
 
 USER 1000:1000
 
-EXPOSE 7863
+EXPOSE 7864
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10m --retries=3 \
-  CMD ["curl", "--fail", "--silent", "--show-error", "http://127.0.0.1:7863/health"]
+  CMD ["curl", "--fail", "--silent", "--show-error", "http://127.0.0.1:7864/health"]
 
 ENTRYPOINT ["/app/indextts-entrypoint.sh"]

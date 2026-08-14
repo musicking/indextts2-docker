@@ -6,7 +6,7 @@
 
 - audio.cpp CUDA 12，固定到提交 `04ba4375ed53bbd718bd2697e190007f6a19f426`
 - IndexTTS 2.5 F16 GGUF，固定到 Hugging Face 提交 `597048d9a920592808d7d4e2acd7b9c4596a143a`
-- API 端口：`7863`
+- API 端口：`7864`
 - 模型 ID：`indextts-2.5`
 - 健康检查：`GET /health`
 - 模型列表：`GET /v1/models`
@@ -30,10 +30,10 @@ docker run -d \
   --name indextts25-api \
   --gpus all \
   --shm-size 8g \
-  -p 7863:7863 \
+  -p 7864:7864 \
   -v "$PWD/voices:/voices:ro" \
   --restart unless-stopped \
-  dockermaker0/indextts2:audio-cpp-latest
+  dockermaker0/indextts25-api:latest
 ```
 
 首次启动会加载完整模型，`/health` 在模型加载完成后才会成功。模型已经在镜像中，不会在启动时下载。
@@ -61,14 +61,14 @@ narrator|这是用于克隆音色的参考音频文本。
 检查服务：
 
 ```bash
-curl http://127.0.0.1:7863/health
-curl http://127.0.0.1:7863/v1/models
+curl http://127.0.0.1:7864/health
+curl http://127.0.0.1:7864/v1/models
 ```
 
 生成语音：
 
 ```bash
-curl http://127.0.0.1:7863/v1/audio/speech \
+curl http://127.0.0.1:7864/v1/audio/speech \
   -H 'Content-Type: application/json' \
   -o output.wav \
   -d '{
@@ -107,7 +107,7 @@ docker run --gpus all \
   -e AUDIOCPP_CONFIG=/config/server.json \
   -v "$PWD/server.json:/config/server.json:ro" \
   -v "$PWD/voices:/voices:ro" \
-  dockermaker0/indextts2:audio-cpp-latest
+  dockermaker0/indextts25-api:latest
 ```
 
 ## 本地构建
@@ -117,7 +117,7 @@ docker run --gpus all \
 ```bash
 docker build \
   -f docker/audio-cpp/Dockerfile \
-  -t dockermaker0/indextts2:audio-cpp-local \
+  -t dockermaker0/indextts25-api:local \
   .
 ```
 
