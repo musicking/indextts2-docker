@@ -4,7 +4,7 @@
 
 ## 镜像内容
 
-- audio.cpp CUDA 12，固定到提交 `04ba4375ed53bbd718bd2697e190007f6a19f426`
+- audio.cpp CUDA 12，固定到提交 `980bd4164b9de744b618a6b0d5e6e515de94999a`
 - IndexTTS 2.5 F16 GGUF，固定到 Hugging Face 提交 `597048d9a920592808d7d4e2acd7b9c4596a143a`
 - API 端口：`7864`
 - 模型 ID：`indextts-2.5`
@@ -12,7 +12,7 @@
 - 模型列表：`GET /v1/models`
 - 语音生成：`POST /v1/audio/speech`
 
-该配置使用 F16 模型，并增加了说话人和情绪缓存槽位，目标是生产吞吐和重复请求性能，不以 8GB 显存为约束。
+该配置使用 F16 模型，并增加了说话人和情绪缓存槽位，目标是生产吞吐和重复请求性能，不以 8GB 显存为约束。当前运行时还包含 IndexTTS 2.5 调速、请求内 base64 参考音频，以及 F16 权重执行优化。
 
 ## 启动
 
@@ -29,7 +29,7 @@ docker compose -f docker-compose.audio-cpp.yml logs -f
 docker run -d \
   --name indextts25-api \
   --gpus all \
-  --shm-size 8g \
+  --shm-size 1g \
   -p 7864:7864 \
   -v "$PWD/voices:/voices:ro" \
   --restart unless-stopped \
@@ -92,6 +92,45 @@ curl http://127.0.0.1:7864/v1/audio/speech \
 ```
 
 情绪控制等 audio.cpp 扩展参数可直接放在请求 JSON 中，例如 `emotion_alpha`、`emotion_vector`、`use_emotion_text`、`emotion_text`、`temperature`、`top_k`、`top_p` 和 `num_beams`。
+
+### 调整语速
+
+`duration_factor` 是输出时长倍率，必须是正数：大于 `1` 会减慢语速，小于 `1` 会加快语速，`1.0` 为默认速度。它不是 OpenAI 请求体顶层的 `speed` 字段，必须放在 `options` 对象中：
+
+```bash
+curl http://127.0.0.1:7864/v1/audio/speech \
+  -H 'Content-Type: application/json' \
+  -o slower.wav \
+  -d '{
+    "model": "indextts-2.5",
+    "input": "这段语音使用较慢的速度生成。",
+    "voice": "narrator",
+    "options": {
+      "duration_factor": 1.25
+    }
+  }'
+```
+
+例如 `0.8` 会加快，`1.25` 会减慢。它通过改变 S2Mel 目标帧长度实现调速，不是对生成后的 WAV 做变速处理。audio.cpp 目前只校验该值大于 `0`；生产网关建议把客户端输入限制在 `0.5`～`2.0`，避免极端值显著增加延迟、内存占用或损害可懂度。
+
+### 请求内发送参考音频
+
+客户端不方便挂载共享目录时，可以直接发送不超过 5MiB 的 base64 WAV。`data:` URI 和纯 base64 字符串都支持：
+
+```json
+{
+  "model": "indextts-2.5",
+  "input": "使用请求中上传的参考音频克隆音色。",
+  "voice_ref": {
+    "type": "base64",
+    "data": "UklGRh..."
+  },
+  "reference_text": "参考音频中实际说出的文本。",
+  "options": {
+    "duration_factor": 1.0
+  }
+}
+```
 
 ## 生产注意事项
 

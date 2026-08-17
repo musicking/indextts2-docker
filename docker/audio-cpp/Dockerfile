@@ -1,13 +1,13 @@
 # syntax=docker/dockerfile:1.7
 
 # The dated tag and OCI digest make the native runtime reproducible. This
-# revision contains audio.cpp release-0.6 plus the IndexTTS 2.5 fixes available
-# on 2026-08-14.
-ARG AUDIOCPP_IMAGE=ghcr.io/0xshug0/audio.cpp:full-cuda12-20260814-04ba437@sha256:73355831b1a31bc417778c7ff922bd80dd12f5ae07b8e9cbbd800a66a3290ea8
+# revision contains audio.cpp release-0.6 plus the IndexTTS 2.5 API and F16
+# performance fixes available on 2026-08-17.
+ARG AUDIOCPP_IMAGE=ghcr.io/0xshug0/audio.cpp:full-cuda12-20260817-980bd41@sha256:3c6f7f4cc016c45a8ba7fadfbd4949d87c83f3faeeefd77cef34b3feee66c91b
 
 FROM ${AUDIOCPP_IMAGE}
 
-ARG AUDIOCPP_REVISION=04ba4375ed53bbd718bd2697e190007f6a19f426
+ARG AUDIOCPP_REVISION=980bd4164b9de744b618a6b0d5e6e515de94999a
 ARG MODEL_REVISION=597048d9a920592808d7d4e2acd7b9c4596a143a
 
 LABEL org.opencontainers.image.source="https://github.com/musicking/indextts2-docker" \

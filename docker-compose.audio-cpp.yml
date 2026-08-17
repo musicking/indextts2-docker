@@ -10,7 +10,7 @@ services:
     volumes:
       - ./voices:/voices:ro
     gpus: all
-    shm_size: 8gb
+    shm_size: 1gb
     init: true
     stop_grace_period: 2m
     restart: unless-stopped
