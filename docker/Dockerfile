@@ -6,7 +6,7 @@ FROM nvidia/cuda:12.8.1-cudnn-devel-ubuntu22.04@sha256:ad6d59a3bbf3e82c1c849c9ac
 
 ARG MODEL_REPO=IndexTeam/IndexTTS-2.5
 ARG MODEL_REVISION=c39ce5ba981572cb187443877ff559dfb246ce63
-ARG UPSTREAM_REVISION=4f8792ff120cd3ea470dd511e997a17c86cddd10
+ARG UPSTREAM_REVISION=ee40fa7d6c6b8a2c7f06105f9f1e65775b74868c
 
 LABEL org.opencontainers.image.source="https://github.com/musicking/indextts2-docker" \
       org.opencontainers.image.url="https://github.com/index-tts/index-tts" \
