@@ -8,6 +8,7 @@
   "log_request_body": false,
   "max_request_body_bytes": 67108864,
   "busy_timeout_ms": 300000,
+  "max_loaded_models": 1,
   "voice_dir": "/voices",
   "models": [
     {

@@ -11,9 +11,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Image version (for example, 2.5.1)
+        description: Image version (for example, 2.5.2)
         required: true
-        default: 2.5.1
+        default: 2.5.2
         type: string
 
 permissions:
@@ -25,7 +25,7 @@ jobs:
     environment: docker
     env:
       IMAGE: dockermaker0/indextts25-api
-      VERSION: ${{ inputs.version || '2.5.1' }}
+      VERSION: ${{ inputs.version || '2.5.2' }}
     steps:
       - name: Validate Docker Hub configuration
         env:
