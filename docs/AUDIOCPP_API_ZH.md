@@ -62,7 +62,7 @@ curl http://127.0.0.1:7864/v1/audio/transcriptions/details \
   -F model=qwen3-asr-1.7b -F file=@input.wav
 ```
 
-ASR 的 `session_options` 已关联内置 ForcedAligner，`default_request_options.return_timestamps` 为 `true`。普通 `/v1/audio/transcriptions` 只返回文本和 timing，不返回词数组；不要为了获取时间戳调用普通路由。details 的词时间可能是 sample offsets，应按响应 `sample_rate` 换算秒数。
+ASR 的 `session_options` 已关联内置 ForcedAligner，`default_request_options.return_timestamps` 为 `true`。镜像同时复制固定源码内的 Silero VAD 小权重，满足默认时间戳分段流程的内部依赖。普通 `/v1/audio/transcriptions` 只返回文本和 timing，不返回词数组；不要为了获取时间戳调用普通路由。details 的词时间可能是 sample offsets，应按响应 `sample_rate` 换算秒数。
 
 已有准确文本时，直接调用独立对齐模型：
 

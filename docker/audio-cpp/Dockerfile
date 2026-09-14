@@ -29,6 +29,7 @@ WORKDIR /app
 ENV LD_LIBRARY_PATH=/app:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
 COPY --from=build /out/ /app/
 COPY --from=build /src/model_specs/ /app/model_specs/
+COPY --from=build /src/assets/framework/models/silero_vad/ /app/assets/framework/models/silero_vad/
 COPY --from=build /src/LICENSE /licenses/audio.cpp-LICENSE
 RUN cp /usr/share/common-licenses/Apache-2.0 /licenses/Apache-2.0
 ADD https://huggingface.co/IndexTeam/IndexTTS-2.5/resolve/c39ce5ba981572cb187443877ff559dfb246ce63/LICENSE /licenses/IndexTTS-LICENSE
