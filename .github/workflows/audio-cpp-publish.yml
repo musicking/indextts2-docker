@@ -8,6 +8,8 @@ on:
       - docker/audio-cpp/**
       - docker-compose.audio-cpp.yml
       - docs/AUDIOCPP_API_ZH.md
+      - scripts/wait_audiocpp_api.py
+      - scripts/test_wait_audiocpp_api.py
   workflow_dispatch:
     inputs:
       version:
@@ -55,6 +57,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Test readiness regression scenarios
+        run: python3 scripts/test_wait_audiocpp_api.py -v
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -64,7 +69,7 @@ jobs:
       - name: Resolve published config-only base to an immutable digest
         if: ${{ inputs.config_only || contains(github.event.head_commit.message, '[api-config-only]') }}
         id: config-base
-        timeout-minutes: 180
+        timeout-minutes: 5
         env:
           REQUESTED_BASE: ${{ inputs.base_image }}
         run: |
@@ -74,12 +79,12 @@ jobs:
             base=$(awk -F= '/^ARG API_BASE_IMAGE=/ {print $2; exit}' docker/audio-cpp/Dockerfile.config)
           fi
           test -n "$base"
-          # A source build can still be publishing its SHA tag. Resolve once it
-          # exists, then use the same immutable digest for validation and push.
-          until digest=$(docker buildx imagetools inspect "$base" --format '{{.Manifest.Digest}}'); do
-            echo "Waiting for the source image to be published: $base"
-            sleep 30
-          done
+          # Config-only publishing requires an already published source image.
+          # Never wait for a failed or nonexistent upstream build.
+          if ! digest=$(docker buildx imagetools inspect "$base" --format '{{.Manifest.Digest}}'); then
+            echo "::error::Config-only base does not exist. Publish a successful full source build first: $base"
+            exit 1
+          fi
           [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
           repository="${base%@*}"
           if [[ "${repository##*/}" == *:* ]]; then
@@ -107,8 +112,8 @@ jobs:
           test "$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' indextts-api-validation:local)" = "$runtime_revision"
           test "$(docker image inspect --format '{{ index .Config.Labels "ai.indextts.model.revision" }}' indextts-api-validation:local)" = "$model_revision"
           docker run -d --name api-smoke -p 127.0.0.1:7864:7864 indextts-api-validation:local
-          trap 'docker logs api-smoke; docker rm -f api-smoke; docker image rm indextts-api-validation:local' EXIT
-          curl --fail --retry 30 --retry-connrefused --retry-delay 2 http://127.0.0.1:7864/health
+          trap 'docker inspect --format "{{json .State}}" api-smoke; docker logs --timestamps api-smoke; docker rm -f api-smoke; docker image rm indextts-api-validation:local' EXIT
+          python3 scripts/wait_audiocpp_api.py --container api-smoke --timeout 120
           curl --fail http://127.0.0.1:7864/v1/models > /tmp/api-models.json
           python3 - <<'PY'
           import json

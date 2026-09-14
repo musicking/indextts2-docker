@@ -205,6 +205,8 @@ GitHub 发布流程先构建并加载镜像，验证服务启动及四个模型�
 
 部署后可运行 `python scripts/smoke_audiocpp_multimodel.py --audio narrator.wav --reference-text "参考音频中实际说出的文本"`。该脚本检查两种 TTS WAV、ASR words、独立对齐及切换后的 ASR 重载，并保存响应供人工验收；不证明音色质量、识别准确率或吞吐。
 
-仅修改配置时，可使用 `docker/audio-cpp/Dockerfile.config` 重用固定摘要的运行时和权重，避免重复编译 CUDA。发布提交包含 `[api-config-only]` 时选择这条路径；普通提交仍从源码构建。若源码镜像还在构建，配置发布任务最多等待 180 分钟；取得 SHA 标签后解析为不可变 OCI 摘要，验证和发布复用同一个摘要。发布前会核对基础镜像的源码及权重 revision，防止把旧运行时误标为新版本。源码或权重更新必须使用完整 Dockerfile，不能使用配置覆盖路径。
+仅修改配置时，可使用 `docker/audio-cpp/Dockerfile.config` 重用已发布的运行时和权重，避免重复编译 CUDA。发布提交包含 `[api-config-only]` 时选择这条路径；普通提交仍从源码构建。基础镜像必须已存在，否则立即失败，不再等待未成功的源码构建。CI 将基础镜像标签解析为不可变 OCI 摘要，验证和发布复用同一个摘要，并核对源码及权重 revision。源码或权重更新必须使用完整 Dockerfile，不能使用配置覆盖路径。
+
+启动检查最多等待 120 秒，会重试短暂连接重置；若容器退出则立即失败并输出容器状态和日志。`scripts/test_wait_audiocpp_api.py` 覆盖断连重试、超时和容器退出场景。该检查仍不替代 GPU 推理测试。
 
 IndexTTS 缓存参数使用最新源码接受的 `index_tts2.*` 前缀；未加前缀的槽位设置会被忽略。
