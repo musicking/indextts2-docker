@@ -61,12 +61,38 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Resolve published config-only base to an immutable digest
+        if: ${{ inputs.config_only || contains(github.event.head_commit.message, '[api-config-only]') }}
+        id: config-base
+        timeout-minutes: 180
+        env:
+          REQUESTED_BASE: ${{ inputs.base_image }}
+        run: |
+          set -euo pipefail
+          base="$REQUESTED_BASE"
+          if [ -z "$base" ]; then
+            base=$(awk -F= '/^ARG API_BASE_IMAGE=/ {print $2; exit}' docker/audio-cpp/Dockerfile.config)
+          fi
+          test -n "$base"
+          # A source build can still be publishing its SHA tag. Resolve once it
+          # exists, then use the same immutable digest for validation and push.
+          until digest=$(docker buildx imagetools inspect "$base" --format '{{.Manifest.Digest}}'); do
+            echo "Waiting for the source image to be published: $base"
+            sleep 30
+          done
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          repository="${base%@*}"
+          if [[ "${repository##*/}" == *:* ]]; then
+            repository="${repository%:*}"
+          fi
+          echo "image=${repository}@${digest}" >> "$GITHUB_OUTPUT"
+
       - name: Build source and bundled models for validation
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ${{ (inputs.config_only || contains(github.event.head_commit.message, '[api-config-only]')) && 'docker/audio-cpp/Dockerfile.config' || 'docker/audio-cpp/Dockerfile' }}
-          build-args: ${{ inputs.base_image && format('API_BASE_IMAGE={0}', inputs.base_image) || '' }}
+          build-args: ${{ steps.config-base.outputs.image && format('API_BASE_IMAGE={0}', steps.config-base.outputs.image) || '' }}
           platforms: linux/amd64
           load: true
           tags: indextts-api-validation:local
@@ -99,7 +125,7 @@ jobs:
         with:
           context: .
           file: ${{ (inputs.config_only || contains(github.event.head_commit.message, '[api-config-only]')) && 'docker/audio-cpp/Dockerfile.config' || 'docker/audio-cpp/Dockerfile' }}
-          build-args: ${{ inputs.base_image && format('API_BASE_IMAGE={0}', inputs.base_image) || '' }}
+          build-args: ${{ steps.config-base.outputs.image && format('API_BASE_IMAGE={0}', steps.config-base.outputs.image) || '' }}
           platforms: linux/amd64
           push: true
           tags: |
