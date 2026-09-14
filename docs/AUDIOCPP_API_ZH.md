@@ -1,11 +1,16 @@
 # IndexTTS 2.5 audio.cpp API 镜像
 
-这套镜像使用 audio.cpp 原生 CUDA Server 和 IndexTTS 2.5 F16 GGUF 模型，模型已经固化在镜像中。容器启动后提供 OpenAI 风格的语音接口，不启动 Gradio WebUI。
+这套镜像从固定的最新 audio.cpp 源码编译原生 CUDA Server，内置四个 GGUF 模型。容器提供语音合成、识别和词级对齐 API，不启动 Gradio WebUI。API 分支为 `codex/audio-cpp-api`，不修改主线 WebUI。
 
 ## 镜像内容
 
-- audio.cpp CUDA 12，固定到提交 `62735eafd96294c52d6c4607f5f38ac55be54f06`
-- IndexTTS 2.5 F16 GGUF，固定到 Hugging Face 提交 `597048d9a920592808d7d4e2acd7b9c4596a143a`
+- 镜像：`dockermaker0/indextts25-api:2.5.3`（发布成功后可拉取；旧版 `2.5.2` 保留）
+- audio.cpp CUDA 12.9.2，从提交 `3eccab50bbdd757126f779687805e7164757eebc` 编译，仅启用需要的模型族及其依赖
+- 全部 GGUF 固定到 Hugging Face 提交 `6d5436fc85f7a20c2e9f4e472b7f3a532f686444`，逐文件 SHA256 校验
+- IndexTTS 2.5 F16：`indextts-2.5`
+- VoxCPM2 Q8_0：`voxcpm2`
+- Qwen3-ASR 1.7B Q8_0：`qwen3-asr-1.7b`
+- Qwen3-ForcedAligner 0.6B Q8_0：`qwen3-forced-aligner-0.6b`
 - API 端口：`7864`
 - 模型 ID：`indextts-2.5`
 - 健康检查：`GET /health`
@@ -36,7 +41,38 @@ docker run -d \
   dockermaker0/indextts25-api:latest
 ```
 
-首次启动会加载完整模型，`/health` 在模型加载完成后才会成功。模型已经在镜像中，不会在启动时下载。
+默认按需加载，启动后 `/health` 仅证明服务存活，不证明 CUDA 模型加载或推理成功。`/v1/models` 中 `loaded:false` 是正常状态，第一次使用对应模型时才加载。全部模型已在镜像中，启动时不下载。
+
+部署升级：`docker compose -f docker-compose.audio-cpp.yml pull` 后执行 `up -d`。生产环境建议固定版本标签，不依赖滚动的 `latest`。
+
+## VoxCPM2、ASR 与词级对齐
+
+VoxCPM2 使用同一语音接口，参考文本必须与参考 WAV 内容一致：
+
+```bash
+curl http://127.0.0.1:7864/v1/audio/speech \
+  -H 'Content-Type: application/json' -o voxcpm2.wav \
+  -d '{"model":"voxcpm2","input":"你好，这是 VoxCPM2 测试。","voice_ref":"/voices/narrator.wav","reference_text":"这是用于克隆音色的参考音频文本。","response_format":"wav"}'
+```
+
+识别并返回词级时间戳（建议使用 16kHz WAV）：
+
+```bash
+curl http://127.0.0.1:7864/v1/audio/transcriptions/details \
+  -F model=qwen3-asr-1.7b -F file=@input.wav
+```
+
+ASR 的 `session_options` 已关联内置 ForcedAligner，`default_request_options.return_timestamps` 为 `true`。普通 `/v1/audio/transcriptions` 只返回文本和 timing，不返回词数组；不要为了获取时间戳调用普通路由。details 的词时间可能是 sample offsets，应按响应 `sample_rate` 换算秒数。
+
+已有准确文本时，直接调用独立对齐模型：
+
+```bash
+curl http://127.0.0.1:7864/v1/audio/alignments \
+  -F model=qwen3-forced-aligner-0.6b -F language=Chinese \
+  -F 'text=这是音频中实际说出的内容。' -F file=@input.wav
+```
+
+这不是 WhisperX，也不包含说话人分离。词对齐增加推理耗时和显存占用。ASR 辅助 aligner 与独立 aligner 是不同 session，不能假定共享显存。
 
 ## 准备音色
 
@@ -137,7 +173,9 @@ curl http://127.0.0.1:7864/v1/audio/speech \
 - audio.cpp 对同一个模型串行执行推理；超过等待上限的新请求返回 HTTP 503。需要在上游设置有界队列和重试策略。
 - 服务本身没有鉴权。不要直接暴露到公网，应放在 Nginx、Caddy 或 API Gateway 后面实现 HTTPS、鉴权、限流和请求审计。
 - 当前 IndexTTS 2.5 是离线生成，不支持流式语音输出。
-- 默认设置 `max_loaded_models: 1`。即使未来配置中加入其他模型，服务也只会保留一个空闲模型驻留，并通过 LRU 卸载释放显存；正在推理的模型不会被驱逐。
+- 默认设置 `lazy_load:true`、`max_loaded_models:1`，最多一个顶层模型驻留，切换时 LRU 卸载空闲模型；正在推理的模型不会被驱逐，全部驻留模型繁忙时可能返回 503。ASR 内部辅助 aligner 不计作另一个顶层模型，但会增加实际内存。显存充足时可挂载配置提高驻留上限，避免频繁切换；不以 8GB 显存为约束。
+- 持续并发 ASR/TTS 建议部署独立容器与 GPU/队列隔离。模型权重约 11.1GB（十进制），镜像还包含 CUDA 运行时。
+- VoxCPM2、Qwen3-ASR 和 ForcedAligner 原始模型标注 Apache-2.0；IndexTTS 权重仍遵循其原始模型许可。转换仓库及运行时许可不替代模型许可，使用者须遵守通知、归属和原模型条款。
 - `server.json` 默认不记录请求正文，避免文本和本地文件路径进入日志。
 - 如需修改设备、线程数、缓存或端口，可以挂载完整配置并设置 `AUDIOCPP_CONFIG`：
 
@@ -152,7 +190,7 @@ docker run --gpus all \
 
 ## 本地构建
 
-构建过程会下载约 4.55GB 的 F16 GGUF 模型：
+构建过程会从固定提交编译 CUDA，并下载约 11.1GB 的 GGUF 权重，需要充足磁盘、内存和较长编译时间：
 
 ```bash
 docker build \
@@ -161,4 +199,6 @@ docker build \
   .
 ```
 
-模型文件和 audio.cpp 基础镜像都固定了提交及校验值，避免上游更新导致同一 Dockerfile 产生不同运行结果。
+audio.cpp 源码与权重固定提交，权重固定 SHA256；CUDA 基础镜像固定版本标签（非 digest），系统依赖来自 apt，不能声称整个构建逐字节可重现。
+
+GitHub 发布流程先构建并加载镜像，验证服务启动及四个模型登记，再发布。托管 runner 没有 NVIDIA GPU，这些检查不替代实际 CUDA 推理验收。生产上线前需测试两种 TTS、ASR words 非空、独立对齐、模型切换及忙碌时 503。

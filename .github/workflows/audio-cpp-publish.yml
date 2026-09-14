@@ -11,9 +11,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Image version (for example, 2.5.2)
+        description: Image version (for example, 2.5.3)
         required: true
-        default: 2.5.2
+        default: 2.5.3
         type: string
 
 permissions:
@@ -25,7 +25,7 @@ jobs:
     environment: docker
     env:
       IMAGE: dockermaker0/indextts25-api
-      VERSION: ${{ inputs.version || '2.5.2' }}
+      VERSION: ${{ inputs.version || '2.5.3' }}
     steps:
       - name: Validate Docker Hub configuration
         env:
@@ -51,7 +51,35 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push IndexTTS 2.5 audio.cpp API image
+      - name: Build source and bundled models for validation
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/audio-cpp/Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: indextts-api-validation:local
+
+      - name: Validate API startup and registered models (no GPU inference)
+        run: |
+          set -euo pipefail
+          python3 -m json.tool docker/audio-cpp/server.json >/dev/null
+          bash -n docker/audio-cpp/entrypoint.sh
+          docker run -d --name api-smoke -p 127.0.0.1:7864:7864 indextts-api-validation:local
+          trap 'docker logs api-smoke; docker rm -f api-smoke; docker image rm indextts-api-validation:local' EXIT
+          curl --fail --retry 30 --retry-connrefused --retry-delay 2 http://127.0.0.1:7864/health
+          curl --fail http://127.0.0.1:7864/v1/models > /tmp/api-models.json
+          python3 - <<'PY'
+          import json
+          with open('/tmp/api-models.json') as f:
+              models = json.load(f)['data']
+          assert {m['id'] for m in models} == {
+              'indextts-2.5', 'voxcpm2', 'qwen3-asr-1.7b', 'qwen3-forced-aligner-0.6b'
+          }, models
+          assert all(not m['loaded'] for m in models), models
+          PY
+
+      - name: Publish validated multi-model API image
         uses: docker/build-push-action@v6
         with:
           context: .

@@ -4,7 +4,7 @@
   "backend": "cuda",
   "device": 0,
   "threads": 4,
-  "lazy_load": false,
+  "lazy_load": true,
   "log_request_body": false,
   "max_request_body_bytes": 67108864,
   "busy_timeout_ms": 300000,
@@ -17,13 +17,40 @@
       "path": "/models/IndexTTS2.5",
       "task": "tts",
       "mode": "offline",
-      "lazy": false,
+      "lazy": true,
       "session_options": {
         "mem_saver": false,
         "speaker_cache_slots": 8,
         "emotion_cache_slots": 4,
         "emotion_text_cache_slots": 4
       }
+    },
+    {
+      "id": "voxcpm2",
+      "family": "voxcpm2",
+      "path": "/models/VoxCPM2/voxcpm2-q8_0.gguf",
+      "task": "tts",
+      "mode": "offline"
+    },
+    {
+      "id": "qwen3-asr-1.7b",
+      "family": "qwen3_asr",
+      "path": "/models/Qwen3-ASR-1.7B/qwen3-asr-1.7b-q8_0.gguf",
+      "task": "asr",
+      "mode": "offline",
+      "session_options": {
+        "qwen3_asr.forced_aligner_model_path": "/models/Qwen3-ForcedAligner/qwen3-forced-aligner-0.6b-q8_0.gguf"
+      },
+      "default_request_options": {
+        "return_timestamps": true
+      }
+    },
+    {
+      "id": "qwen3-forced-aligner-0.6b",
+      "family": "qwen3_forced_aligner",
+      "path": "/models/Qwen3-ForcedAligner/qwen3-forced-aligner-0.6b-q8_0.gguf",
+      "task": "align",
+      "mode": "offline"
     }
   ]
 }
