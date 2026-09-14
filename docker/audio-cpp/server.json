@@ -19,10 +19,10 @@
       "mode": "offline",
       "lazy": true,
       "session_options": {
-        "mem_saver": false,
-        "speaker_cache_slots": 8,
-        "emotion_cache_slots": 4,
-        "emotion_text_cache_slots": 4
+        "index_tts2.mem_saver": false,
+        "index_tts2.speaker_cache_slots": 8,
+        "index_tts2.emotion_cache_slots": 4,
+        "index_tts2.emotion_text_cache_slots": 4
       }
     },
     {

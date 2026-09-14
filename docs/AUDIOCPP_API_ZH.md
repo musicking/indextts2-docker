@@ -4,7 +4,7 @@
 
 ## 镜像内容
 
-- 镜像：`dockermaker0/indextts25-api:2.5.3`（发布成功后可拉取；旧版 `2.5.2` 保留）
+- 镜像：`dockermaker0/indextts25-api:2.5.4`（发布成功后可拉取；旧版 `2.5.2` 保留）
 - audio.cpp CUDA 12.9.2，从提交 `3eccab50bbdd757126f779687805e7164757eebc` 编译，仅启用需要的模型族及其依赖
 - 全部 GGUF 固定到 Hugging Face 提交 `6d5436fc85f7a20c2e9f4e472b7f3a532f686444`，逐文件 SHA256 校验
 - IndexTTS 2.5 F16：`indextts-2.5`
@@ -202,3 +202,9 @@ docker build \
 audio.cpp 源码与权重固定提交，权重固定 SHA256；CUDA 基础镜像固定版本标签（非 digest），系统依赖来自 apt，不能声称整个构建逐字节可重现。
 
 GitHub 发布流程先构建并加载镜像，验证服务启动及四个模型登记，再发布。托管 runner 没有 NVIDIA GPU，这些检查不替代实际 CUDA 推理验收。生产上线前需测试两种 TTS、ASR words 非空、独立对齐、模型切换及忙碌时 503。
+
+部署后可运行 `python scripts/smoke_audiocpp_multimodel.py --audio narrator.wav --reference-text "参考音频中实际说出的文本"`。该脚本检查两种 TTS WAV、ASR words、独立对齐及切换后的 ASR 重载，并保存响应供人工验收；不证明音色质量、识别准确率或吞吐。
+
+仅修改配置时，可使用 `docker/audio-cpp/Dockerfile.config` 重用固定摘要的运行时和权重，避免重复编译 CUDA。发布提交包含 `[api-config-only]` 时选择这条路径；普通提交仍从源码构建。发布前会核对基础镜像的源码及权重 revision，防止把旧运行时误标为新版本。源码或权重更新必须使用完整 Dockerfile，不能使用配置覆盖路径。
+
+IndexTTS 缓存参数使用最新源码接受的 `index_tts2.*` 前缀；未加前缀的槽位设置会被忽略。

@@ -11,9 +11,19 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Image version (for example, 2.5.3)
+        description: Image version (for example, 2.5.4)
         required: true
-        default: 2.5.3
+        default: 2.5.4
+        type: string
+      config_only:
+        description: Reuse the pinned runtime and weights; update server configuration only
+        required: false
+        default: false
+        type: boolean
+      base_image:
+        description: Optional verified base image digest for config-only builds
+        required: false
+        default: ''
         type: string
 
 permissions:
@@ -25,7 +35,7 @@ jobs:
     environment: docker
     env:
       IMAGE: dockermaker0/indextts25-api
-      VERSION: ${{ inputs.version || '2.5.3' }}
+      VERSION: ${{ inputs.version || '2.5.4' }}
     steps:
       - name: Validate Docker Hub configuration
         env:
@@ -55,7 +65,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: docker/audio-cpp/Dockerfile
+          file: ${{ (inputs.config_only || contains(github.event.head_commit.message, '[api-config-only]')) && 'docker/audio-cpp/Dockerfile.config' || 'docker/audio-cpp/Dockerfile' }}
+          build-args: ${{ inputs.base_image && format('API_BASE_IMAGE={0}', inputs.base_image) || '' }}
           platforms: linux/amd64
           load: true
           tags: indextts-api-validation:local
@@ -65,6 +76,10 @@ jobs:
           set -euo pipefail
           python3 -m json.tool docker/audio-cpp/server.json >/dev/null
           bash -n docker/audio-cpp/entrypoint.sh
+          runtime_revision=$(awk -F= '/^ARG AUDIOCPP_REVISION=/ {print $2; exit}' docker/audio-cpp/Dockerfile)
+          model_revision=$(awk -F= '/^ARG MODEL_REVISION=/ {print $2; exit}' docker/audio-cpp/Dockerfile)
+          test "$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' indextts-api-validation:local)" = "$runtime_revision"
+          test "$(docker image inspect --format '{{ index .Config.Labels "ai.indextts.model.revision" }}' indextts-api-validation:local)" = "$model_revision"
           docker run -d --name api-smoke -p 127.0.0.1:7864:7864 indextts-api-validation:local
           trap 'docker logs api-smoke; docker rm -f api-smoke; docker image rm indextts-api-validation:local' EXIT
           curl --fail --retry 30 --retry-connrefused --retry-delay 2 http://127.0.0.1:7864/health
@@ -83,7 +98,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: docker/audio-cpp/Dockerfile
+          file: ${{ (inputs.config_only || contains(github.event.head_commit.message, '[api-config-only]')) && 'docker/audio-cpp/Dockerfile.config' || 'docker/audio-cpp/Dockerfile' }}
+          build-args: ${{ inputs.base_image && format('API_BASE_IMAGE={0}', inputs.base_image) || '' }}
           platforms: linux/amd64
           push: true
           tags: |
