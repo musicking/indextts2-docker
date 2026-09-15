@@ -12,6 +12,7 @@ RUN git init . && git remote add origin https://github.com/0xShug0/audio.cpp.git
     && test "$(git rev-parse HEAD)" = "${AUDIOCPP_REVISION}"
 RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DAUDIOCPP_MODEL_SET=custom \
     -DAUDIOCPP_MODELS="index_tts2;voxcpm2;qwen3_asr;qwen3_forced_aligner" \
+    -DAUDIOCPP_BUILD_NATIVE_MODEL_MANAGER=ON \
     -DENGINE_ENABLE_CPU_ALL_VARIANTS=ON -DENGINE_ENABLE_CUDA=ON -DENGINE_ENABLE_CUDA_GRAPHS=ON \
     -DENGINE_ENABLE_VULKAN=OFF -DENGINE_ENABLE_OPENMP=ON \
     -DENGINE_BUILD_EXAMPLES=OFF -DENGINE_BUILD_TESTS=OFF -DENGINE_BUILD_WARMBENCH=OFF \

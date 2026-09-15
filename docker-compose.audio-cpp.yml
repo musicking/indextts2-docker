@@ -1,7 +1,7 @@
 services:
   indextts25-api:
     container_name: indextts25-api
-    image: dockermaker0/indextts25-api:2.5.4
+    image: dockermaker0/indextts25-api:2.5.5
     build:
       context: .
       dockerfile: docker/audio-cpp/Dockerfile

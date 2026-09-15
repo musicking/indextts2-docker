@@ -4,7 +4,7 @@
 
 ## 镜像内容
 
-- 镜像：`dockermaker0/indextts25-api:2.5.4`（发布成功后可拉取；旧版 `2.5.2` 保留）
+- 镜像：`dockermaker0/indextts25-api:2.5.5`（发布成功后可拉取；旧版 `2.5.2` 保留）
 - audio.cpp CUDA 12.9.2，从提交 `3eccab50bbdd757126f779687805e7164757eebc` 编译，仅启用需要的模型族及其依赖
 - 全部 GGUF 固定到 Hugging Face 提交 `6d5436fc85f7a20c2e9f4e472b7f3a532f686444`，逐文件 SHA256 校验
 - IndexTTS 2.5 F16：`indextts-2.5`
@@ -208,5 +208,7 @@ GitHub 发布流程先构建并加载镜像，验证服务启动及四个模型�
 仅修改配置时，可使用 `docker/audio-cpp/Dockerfile.config` 重用已发布的运行时和权重，避免重复编译 CUDA。发布提交包含 `[api-config-only]` 时选择这条路径；普通提交仍从源码构建。基础镜像必须已存在，否则立即失败，不再等待未成功的源码构建。CI 将基础镜像标签解析为不可变 OCI 摘要，验证和发布复用同一个摘要，并核对源码及权重 revision。源码或权重更新必须使用完整 Dockerfile，不能使用配置覆盖路径。
 
 启动检查最多等待 120 秒，会重试短暂连接重置；若容器退出则立即失败并输出容器状态和日志。`scripts/test_wait_audiocpp_api.py` 覆盖断连重试、超时和容器退出场景。该检查仍不替代 GPU 推理测试。
+
+服务器通过 `AUDIOCPP_BUILD_NATIVE_MODEL_MANAGER=ON` 编译；这是读取多模型服务配置所需的上游功能。构建配置测试会阻止漏掉该选项的镜像再次发布。
 
 IndexTTS 缓存参数使用最新源码接受的 `index_tts2.*` 前缀；未加前缀的槽位设置会被忽略。
